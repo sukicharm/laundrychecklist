@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HKBH特別項目出洗核對表</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 15px; background-color: #f4f6f9; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #0056b3; }
+        .date-section { margin-bottom: 20px; font-weight: bold; }
+        .package-block { border: 2px solid #0056b3; padding: 15px; margin-bottom: 20px; border-radius: 6px; background-color: #fafafa; }
+        .package-title { font-size: 1.1rem; font-weight: bold; color: #0056b3; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
+        .form-group { margin-bottom: 10px; display: flex; align-items: center; }
+        .form-group label { width: 100px; font-weight: bold; }
+        .form-group input[type="text"], .form-group input[type="number"] { flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
+        
+        .item-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #eee; flex-wrap: wrap; }
+        .item-name { flex: 1; min-width: 120px; }
+        .item-qty { width: 70px; padding: 4px; text-align: center; font-size: 1rem; border: 1px solid #ccc; border-radius: 4px; }
+        .other-input { width: 60%; padding: 4px; border: 1px solid #ccc; border-radius: 4px; }
+        
+        /* 吊機帶 S/N 樣式 */
+        .sn-container { width: 100%; padding-left: 15px; margin-top: 5px; box-sizing: border-box; }
+        .sn-input { width: 90%; margin-bottom: 5px; padding: 4px; font-size: 0.9rem; border: 1px solid #aaa; border-radius: 4px; background-color: #fffde7; }
+        
+        /* 特別布簾細項樣式 */
+        .curtain-sub-grid { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; background: #eef1f6; padding: 8px; border-radius: 4px; margin-top: 5px; box-sizing: border-box; }
+        .curtain-sub-item { display: flex; align-items: center; justify-content: space-between; font-size: 0.9rem; }
+        .curtain-sub-item input { width: 45px; padding: 3px; text-align: center; }
+        
+        .btn-zone { text-align: center; margin-top: 20px; }
+        button { padding: 12px 24px; font-size: 1rem; background-color: #0056b3; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button:hover { background-color: #004085; }
+        
+        /* 打印樣式優化 */
+        @media print {
+            @page { 
+                margin-top: 1.5cm; /* 確保所有頁面（包括第二頁）頂部都有最少 1.5cm 空間 */
+                margin-left: 1cm;
+                margin-right: 1cm;
+                margin-bottom: 1cm; 
+            }
+            
+            body { background-color: #fff; margin: 0; padding: 0; }
+            .container, button, .date-section input { display: none; }
+            .print-page { display: block !important; }
+            
+            .print-package-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; page-break-inside: avoid; }
+            .print-package-table th, .print-package-table td { border: 1px solid #000; padding: 5px 8px; text-align: left; font-size: 14px; }
+            .print-package-table th { background-color: #f2f2f2 !important; -webkit-print-color-adjust: exact; }
+            
+            /* 第一頁大標題調整，移除額外的 margin 避免浪費第一頁空間 */
+            .print-header { text-align: center; margin-top: 0; margin-bottom: 15px; }
+            .print-header h1 { margin: 0; font-size: 22px; }
+            .print-header p { margin: 5px 0 0 0; font-size: 22px; } 
+            
+            .print-sn-list { font-size: 12px; color: #333; margin-top: 2px; padding-left: 15px; font-family: monospace; }
+            .print-curtain-detail { font-size: 12px; color: #444; margin-top: 2px; font-style: italic; }
+        }
+        .print-page { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>香港佛教醫院特別項目出洗核對表數據輸入</h2>
+    
+    <div class="date-section">
+        <label>送出日期：</label>
+        <input type="date" id="sendDate" style="padding:6px; font-size:1rem;">
+    </div>
+
+    <div id="packages-container"></div>
+
+    <div class="btn-zone">
+        <button onclick="generatePrintView()">生成表單</button>
+    </div>
+</div>
+
+<div id="print-area" class="print-page"></div>
+
+<script>
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('sendDate').value = today;
+
+    const fixedItems = [
+        "手腕約束帶", "磁石腰帶", "磁石手帶", 
+        "約束手套", "防滑骨盆固定帶", "防撕片褲", "皮下注射機機套"
+    ];
+
+    const curtainTypes = ["大", "小", "紗", "花", "橙", "灰"];
+
+    const container = document.getElementById('packages-container');
+    for (let i = 1; i <= 10; i++) {
+        let packageHtml = `
+            <div class="package-block" id="pkg-${i}">
+                <div class="package-title">包裹 ${i} (若此包裹沒使用，病房留空即可)</div>
+                <div class="form-group">
+                    <label>病房/部門：</label>
+                    <input type="text" id="ward-${i}" placeholder="例如: A3 / 留空不列印">
+                </div>
+                <div class="form-group">
+                    <label>網袋數量：</label>
+                    <input type="number" id="bag-${i}" min="0" placeholder="0">
+                </div>
+                
+                <div style="margin-top:10px; font-weight:bold; font-size:0.9rem; color:#555;">內容物數量：</div>
+                
+                <div class="item-row">
+                    <span class="item-name" style="color: #b85c00; font-weight: bold;">★ 吊機帶</span>
+                    <input type="number" class="item-qty" id="qty-lifter-${i}" min="0" placeholder="0" oninput="toggleSNFields(${i})">
+                    <div class="sn-container" id="sn-container-${i}"></div>
+                </div>
+
+                <div class="item-row">
+                    <span class="item-name" style="color: #006644; font-weight: bold;">★ 特別布簾 (總數: <span id="curtain-total-${i}">0</span>)</span>
+                    <div class="curtain-sub-grid">
+        `;
+        
+        curtainTypes.forEach(type => {
+            packageHtml += `
+                <div class="curtain-sub-item">
+                    <span>${type}:</span>
+                    <input type="number" id="qty-curtain-${i}-${type}" min="0" placeholder="0" oninput="calculateCurtainTotal(${i})">
+                </div>
+            `;
+        });
+
+        packageHtml += `
+                    </div>
+                </div>
+        `;
+        
+        fixedItems.forEach((item, index) => {
+            packageHtml += `
+                <div class="item-row">
+                    <span class="item-name">${item}</span>
+                    <input type="number" class="item-qty" id="qty-${i}-${index}" min="0" placeholder="0">
+                </div>
+            `;
+        });
+
+        for (let j = 1; j <= 3; j++) {
+            packageHtml += `
+                <div class="item-row">
+                    <input type="text" class="other-input" id="other-name-${i}-${j}" placeholder="其他物品 ${j} 名稱">
+                    <input type="number" class="item-qty" id="other-qty-${i}-${j}" min="0" placeholder="0">
+                </div>
+            `;
+        }
+
+        packageHtml += `</div>`;
+        container.innerHTML += packageHtml;
+    }
+
+    function toggleSNFields(pkgIndex) {
+        const qty = parseInt(document.getElementById(`qty-lifter-${pkgIndex}`).value) || 0;
+        const container = document.getElementById(`sn-container-${pkgIndex}`);
+        container.innerHTML = '';
+        
+        for (let k = 1; k <= qty; k++) {
+            container.innerHTML += `<input type="text" class="sn-input" id="sn-${pkgIndex}-${k}" placeholder="輸入第 ${k} 條吊機帶 S/N 序號">`;
+        }
+    }
+
+    function calculateCurtainTotal(pkgIndex) {
+        let total = 0;
+        curtainTypes.forEach(type => {
+            const val = parseInt(document.getElementById(`qty-curtain-${pkgIndex}-${type}`).value) || 0;
+            total += val;
+        });
+        document.getElementById(`curtain-total-${pkgIndex}`).innerText = total;
+    }
+
+    function generatePrintView() {
+        const sendDate = document.getElementById('sendDate').value;
+        const printArea = document.getElementById('print-area');
+        printArea.innerHTML = ''; 
+
+        let hasData = false;
+        let printHtml = `<div class="print-header"><h1>香港佛教醫院特別項目出洗核對表</h1><p><strong>送出日期：${sendDate}</strong></p></div>`;
+
+        for (let i = 1; i <= 10; i++) {
+            const ward = document.getElementById(`ward-${i}`).value.trim();
+            const bagCount = document.getElementById(`bag-${i}`).value || 0;
+
+            if (ward !== "") {
+                hasData = true;
+                
+                printHtml += `
+                    <table class="print-package-table">
+                        <thead>
+                            <tr>
+                                <th colspan="2" style="width: 50%; font-size: 15px;">病房/部門：${ward}</th>
+                                <th colspan="2" style="width: 50%; font-size: 15px;">網袋數量：${bagCount}</th>
+                            </tr>
+                            <tr>
+                                <th colspan="3" style="background-color: #f9f9f9; padding: 4px 8px;">物品名稱</th>
+                                <th style="text-align:center; background-color: #f9f9f9; width: 20%; padding: 4px 8px;">數量</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                let rowCount = 0;
+
+                const lifterQty = parseInt(document.getElementById(`qty-lifter-${i}`).value) || 0;
+                if (lifterQty > 0) {
+                    let snListHtml = '';
+                    for (let k = 1; k <= lifterQty; k++) {
+                        const snVal = document.getElementById(`sn-${i}-${k}`).value.trim() || '未填寫序號';
+                        snListHtml += `<div>└─ [S/N: ${snVal}]</div>`;
+                    }
+                    printHtml += `
+                        <tr>
+                            <td colspan="3"><strong>吊機帶</strong><div class="print-sn-list">${snListHtml}</div></td>
+                            <td style="text-align:center; font-weight:bold; font-size: 15px; vertical-align:middle;">${lifterQty}</td>
+                        </tr>
+                    `;
+                    rowCount++;
+                }
+
+                let curtainDetail = [];
+                let curtainTotal = 0;
+                curtainTypes.forEach(type => {
+                    const cQty = parseInt(document.getElementById(`qty-curtain-${i}-${type}`).value) || 0;
+                    if (cQty > 0) {
+                        curtainDetail.push(`${type}簾×${cQty}`); /* 這裡已成功由「裝」改為「簾」 */
+                    }
+                    curtainTotal += cQty;
+                });
+                if (curtainTotal > 0) {
+                    printHtml += `
+                        <tr>
+                            <td colspan="3"><strong>特別布簾</strong><div class="print-curtain-detail">（明細：${curtainDetail.join(', ')}）</div></td>
+                            <td style="text-align:center; font-weight:bold; font-size: 15px; vertical-align:middle;">${curtainTotal}</td>
+                        </tr>
+                    `;
+                    rowCount++;
+                }
+
+                fixedItems.forEach((item, index) => {
+                    const qty = document.getElementById(`qty-${i}-${index}`).value;
+                    if (qty && qty > 0) {
+                        printHtml += `
+                            <tr>
+                                <td colspan="3">${item}</td>
+                                <td style="text-align:center; font-weight:bold; font-size: 15px;">${qty}</td>
+                            </tr>
+                        `;
+                        rowCount++;
+                    }
+                });
+
+                for (let j = 1; j <= 3; j++) {
+                    const otherName = document.getElementById(`other-name-${i}-${j}`).value.trim();
+                    const otherQty = document.getElementById(`other-qty-${i}-${j}`).value;
+                    if (otherName !== "" && otherQty && otherQty > 0) {
+                        printHtml += `
+                            <tr>
+                                <td colspan="3">${otherName}</td>
+                                <td style="text-align:center; font-weight:bold; font-size: 15px;">${otherQty}</td>
+                            </tr>
+                        `;
+                        rowCount++;
+                    }
+                }
+
+                if (rowCount === 0) {
+                    printHtml += `<tr><td colspan="4" style="text-align:center; color:#777; padding: 10px;">（此包裹無裝載物品）</td></tr>`;
+                }
+
+                printHtml += `</tbody></table>`;
+            }
+        }
+
+        if (!hasData) {
+            alert("請至少填寫一個包裹的「病房/部門」資料再行列印！");
+            return;
+        }
+
+        printArea.innerHTML = printHtml;
+        window.print(); 
+    }
+</script>
+
+</body>
+</html>
