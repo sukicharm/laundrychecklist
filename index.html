@@ -89,23 +89,19 @@
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('sendDate').value = today;
 
-    // 你可以在這個陣列隨意加入新的物品名稱，記得用引號包住，並用半形逗號分隔
+    // 你自行加入的新固定物品，這裡運作完全正常！
     const fixedItems = [
         "手腕約束帶", "磁石腰帶", "磁石手帶", 
         "約束手套", "防滑骨盆固定帶", "防撕片褲", "皮下注射機機套",
         "血壓機布", "剪髮手袖" , "OT防塵用廢布", "衣服房運送用廢布床單"
     ];
-
     const curtainTypes = ["大", "小", "紗", "花", "橙", "灰"];
 
     const container = document.getElementById('packages-container');
-    
     // 生成 12 個包裹
     for (let i = 1; i <= 12; i++) {
-        // 第 6 到 12 個包裹預設加上隱藏的 style 及特有 class
         let isHidden = i > 5 ? 'style="display: none;"' : '';
         let extraClass = i > 5 ? 'extra-package' : '';
-
         let packageHtml = `
             <div class="package-block ${extraClass}" id="pkg-${i}" ${isHidden}>
                 <div class="package-title">包裹 ${i} (若此包裹沒使用，病房留空即可)</div>
@@ -117,7 +113,7 @@
                     <label>網袋數量：</label>
                     <input type="number" id="bag-${i}" min="0" placeholder="0">
                 </div>
-                
+      
                 <div style="margin-top:10px; font-weight:bold; font-size:0.9rem; color:#555;">內容物數量：</div>
                 
                 <div class="item-row">
@@ -145,7 +141,6 @@
                 </div>
         `;
         
-        // 渲染其餘固定物品 (包含你之後加入的新物品)
         fixedItems.forEach((item, index) => {
             packageHtml += `
                 <div class="item-row">
@@ -155,6 +150,7 @@
             `;
         });
 
+        // 這裡你改成了 2 欄，非常好
         for (let j = 1; j <= 2; j++) {
             packageHtml += `
                 <div class="item-row">
@@ -168,13 +164,11 @@
         container.innerHTML += packageHtml;
     }
 
-    // 展開 6-12 個包裹的函數
     function showExtraPackages() {
         const extraPkgs = document.querySelectorAll('.extra-package');
         extraPkgs.forEach(pkg => {
             pkg.style.display = 'block';
         });
-        // 隱藏按鈕本身
         document.getElementById('show-more-zone').style.display = 'none';
     }
 
@@ -205,14 +199,12 @@
         let hasData = false;
         let printHtml = `<div class="print-header"><h1>香港佛教醫院特別項目出洗核對表</h1><p><strong>送出日期：${sendDate}</strong></p></div>`;
 
-        // 這裡改為迴圈 12 次，檢查 1 到 12 的所有包裹
         for (let i = 1; i <= 12; i++) {
             const ward = document.getElementById(`ward-${i}`).value.trim();
             const bagCount = document.getElementById(`bag-${i}`).value || 0;
 
             if (ward !== "") {
                 hasData = true;
-                
                 printHtml += `
                     <table class="print-package-table">
                         <thead>
@@ -227,7 +219,6 @@
                         </thead>
                         <tbody>
                 `;
-
                 let rowCount = 0;
 
                 const lifterQty = parseInt(document.getElementById(`qty-lifter-${i}`).value) || 0;
@@ -265,7 +256,6 @@
                     rowCount++;
                 }
 
-                // 印出陣列中的所有物品 (包含新增的物品)
                 fixedItems.forEach((item, index) => {
                     const qty = document.getElementById(`qty-${i}-${index}`).value;
                     if (qty && qty > 0) {
@@ -279,7 +269,8 @@
                     }
                 });
 
-                for (let j = 1; j <= 3; j++) {
+                // 【已修正】這裡原本是 j <= 3，現已同步改為 j <= 2 配合你的網頁排版
+                for (let j = 1; j <= 2; j++) {
                     const otherName = document.getElementById(`other-name-${i}-${j}`).value.trim();
                     const otherQty = document.getElementById(`other-qty-${i}-${j}`).value;
                     if (otherName !== "" && otherQty && otherQty > 0) {
